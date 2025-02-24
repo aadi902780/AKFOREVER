@@ -141,25 +141,36 @@
       const profilePic = profilePicInput.files[0];
 
       if (profilePic) {
+        console.log("Reading profile picture...");
         const reader = new FileReader();
         reader.readAsDataURL(profilePic);
         reader.onload = async () => {
           const profilePicBase64 = reader.result;
+          console.log("Base64 Image Data:", profilePicBase64);
 
           await set(ref(database, "users/" + user.uid), {
             displayName: displayName,
             profilePic: profilePicBase64
           });
 
+          console.log("Profile saved successfully!");
           alert("Profile updated!");
           loadProfile(user.uid);
         };
+
+        reader.onerror = (error) => {
+          console.error("Error reading image:", error);
+          alert("Error converting image to Base64.");
+        };
       } else {
+        console.log("No profile picture selected.");
+
         await set(ref(database, "users/" + user.uid), {
           displayName: displayName,
           profilePic: ""
         });
 
+        console.log("Profile updated without picture.");
         alert("Profile updated!");
         loadProfile(user.uid);
       }
@@ -170,6 +181,8 @@
       get(child(dbRef, "users/" + uid)).then((snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
+          console.log("Profile Loaded:", data);
+
           displayNameDisplay.innerText = `Name: ${data.displayName}`;
           profilePicDisplay.src = data.profilePic || "default-avatar.png";
         }
