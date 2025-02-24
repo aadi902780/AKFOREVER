@@ -36,6 +36,10 @@
       border: none;
       cursor: pointer;
     }
+    img {
+      border-radius: 50%;
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
@@ -54,16 +58,26 @@
   <div id="chat-section" style="display: none;">
     <h2>Welcome to AKKI Chat</h2>
     <p id="user-info"></p>
+
+    <!-- Profile Section -->
+    <h3>Profile</h3>
+    <input type="text" id="display-name" placeholder="Enter Display Name">
+    <input type="file" id="profile-pic">
+    <button id="save-profile">Save Profile</button>
+
+    <h4>Your Profile:</h4>
+    <img id="profile-pic-display" src="" alt="Profile Picture" width="100">
+    <p id="display-name-display"></p>
+
     <button id="logout-btn">Logout</button>
   </div>
 
-  <!-- Firebase and Authentication Script -->
   <script type="module">
-    // Import Firebase modules
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-storage.js";
 
-    // Your Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyAoRY0MO-ZylhxdnGDVoTqsMZ1MOTyZTB0",
       authDomain: "akforever-2934a.firebaseapp.com",
@@ -74,11 +88,11 @@
       measurementId: "G-PZXE3HRTGB"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-    // DOM Elements
     const loginSection = document.getElementById("login-section");
     const chatSection = document.getElementById("chat-section");
     const emailInput = document.getElementById("email");
@@ -88,38 +102,74 @@
     const logoutBtn = document.getElementById("logout-btn");
     const userInfo = document.getElementById("user-info");
 
-    // Login Function
+    const displayNameInput = document.getElementById("display-name");
+    const profilePicInput = document.getElementById("profile-pic");
+    const saveProfileBtn = document.getElementById("save-profile");
+    const displayNameDisplay = document.getElementById("display-name-display");
+    const profilePicDisplay = document.getElementById("profile-pic-display");
+
     loginBtn.addEventListener("click", () => {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-
-      signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          userInfo.innerText = `Logged in as: ${userCredential.user.email}`;
-          loginSection.style.display = "none";
-          chatSection.style.display = "block";
-        })
+      signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .then((userCredential) => showChatScreen(userCredential.user))
         .catch((error) => alert(error.message));
     });
 
-    // Signup Function
     signupBtn.addEventListener("click", () => {
-      const email = emailInput.value;
-      const password = passwordInput.value;
-
-      createUserWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          alert("Signup successful! Please log in.");
-        })
+      createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
+        .then(() => alert("Signup successful! Please log in."))
         .catch((error) => alert(error.message));
     });
 
-    // Logout Function
     logoutBtn.addEventListener("click", () => {
       signOut(auth).then(() => {
         loginSection.style.display = "block";
         chatSection.style.display = "none";
       });
+    });
+
+    function showChatScreen(user) {
+      loginSection.style.display = "none";
+      chatSection.style.display = "block";
+      userInfo.innerText = `Logged in as: ${user.email}`;
+      loadProfile(user.uid);
+    }
+
+    saveProfileBtn.addEventListener("click", async () => {
+      const user = auth.currentUser;
+      if (!user) return alert("Please log in first!");
+
+      const displayName = displayNameInput.value;
+      const profilePic = profilePicInput.files[0];
+
+      let profilePicURL = "";
+      if (profilePic) {
+        const storageRef = ref(storage, `profile_pics/${user.uid}`);
+        await uploadBytes(storageRef, profilePic);
+        profilePicURL = await getDownloadURL(storageRef);
+      }
+
+      await setDoc(doc(db, "users", user.uid), {
+        displayName: displayName,
+        profilePic: profilePicURL
+      });
+
+      alert("Profile updated!");
+      loadProfile(user.uid);
+    });
+
+    async function loadProfile(uid) {
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        displayNameDisplay.innerText = `Name: ${data.displayName}`;
+        profilePicDisplay.src = data.profilePic || "default-avatar.png";
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        showChatScreen(user);
+      }
     });
   </script>
 </body>
