@@ -36,10 +36,6 @@
       border: none;
       cursor: pointer;
     }
-    img {
-      border-radius: 50%;
-      margin: 10px;
-    }
   </style>
 </head>
 <body>
@@ -62,11 +58,9 @@
     <!-- Profile Section -->
     <h3>Profile</h3>
     <input type="text" id="display-name" placeholder="Enter Display Name">
-    <input type="file" id="profile-pic">
     <button id="save-profile">Save Profile</button>
 
     <h4>Your Profile:</h4>
-    <img id="profile-pic-display" src="" alt="Profile Picture" width="100">
     <p id="display-name-display"></p>
 
     <button id="logout-btn">Logout</button>
@@ -102,10 +96,8 @@
     const userInfo = document.getElementById("user-info");
 
     const displayNameInput = document.getElementById("display-name");
-    const profilePicInput = document.getElementById("profile-pic");
     const saveProfileBtn = document.getElementById("save-profile");
     const displayNameDisplay = document.getElementById("display-name-display");
-    const profilePicDisplay = document.getElementById("profile-pic-display");
 
     loginBtn.addEventListener("click", () => {
       signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value)
@@ -138,42 +130,13 @@
       if (!user) return alert("Please log in first!");
 
       const displayName = displayNameInput.value;
-      const profilePic = profilePicInput.files[0];
 
-      if (profilePic) {
-        console.log("Reading profile picture...");
-        const reader = new FileReader();
-        reader.readAsDataURL(profilePic);
-        reader.onload = async () => {
-          const profilePicBase64 = reader.result;
-          console.log("Base64 Image Data:", profilePicBase64);
+      await set(ref(database, "users/" + user.uid), {
+        displayName: displayName
+      });
 
-          await set(ref(database, "users/" + user.uid), {
-            displayName: displayName,
-            profilePic: profilePicBase64
-          });
-
-          console.log("Profile saved successfully!");
-          alert("Profile updated!");
-          loadProfile(user.uid);
-        };
-
-        reader.onerror = (error) => {
-          console.error("Error reading image:", error);
-          alert("Error converting image to Base64.");
-        };
-      } else {
-        console.log("No profile picture selected.");
-
-        await set(ref(database, "users/" + user.uid), {
-          displayName: displayName,
-          profilePic: ""
-        });
-
-        console.log("Profile updated without picture.");
-        alert("Profile updated!");
-        loadProfile(user.uid);
-      }
+      alert("Profile updated!");
+      loadProfile(user.uid);
     });
 
     async function loadProfile(uid) {
@@ -181,10 +144,7 @@
       get(child(dbRef, "users/" + uid)).then((snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.val();
-          console.log("Profile Loaded:", data);
-
           displayNameDisplay.innerText = `Name: ${data.displayName}`;
-          profilePicDisplay.src = data.profilePic || "default-avatar.png";
         }
       }).catch((error) => {
         console.error("Error loading profile:", error);
