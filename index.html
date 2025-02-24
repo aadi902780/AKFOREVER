@@ -75,11 +75,12 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAoRY0MO-ZylhxdnGDVoTqsMZ1MOTyZTB0",
       authDomain: "akforever-2934a.firebaseapp.com",
+      databaseURL: "https://akforever-2934a-default-rtdb.firebaseio.com",
       projectId: "akforever-2934a",
       storageBucket: "akforever-2934a.firebasestorage.app",
       messagingSenderId: "1062680034128",
@@ -89,7 +90,7 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
+    const database = getDatabase(app);
 
     const loginSection = document.getElementById("login-section");
     const chatSection = document.getElementById("chat-section");
@@ -145,7 +146,7 @@
         reader.onload = async () => {
           const profilePicBase64 = reader.result;
 
-          await setDoc(doc(db, "users", user.uid), {
+          await set(ref(database, "users/" + user.uid), {
             displayName: displayName,
             profilePic: profilePicBase64
           });
@@ -154,7 +155,7 @@
           loadProfile(user.uid);
         };
       } else {
-        await setDoc(doc(db, "users", user.uid), {
+        await set(ref(database, "users/" + user.uid), {
           displayName: displayName,
           profilePic: ""
         });
@@ -165,12 +166,16 @@
     });
 
     async function loadProfile(uid) {
-      const userDoc = await getDoc(doc(db, "users", uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        displayNameDisplay.innerText = `Name: ${data.displayName}`;
-        profilePicDisplay.src = data.profilePic || "default-avatar.png";
-      }
+      const dbRef = ref(database);
+      get(child(dbRef, "users/" + uid)).then((snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          displayNameDisplay.innerText = `Name: ${data.displayName}`;
+          profilePicDisplay.src = data.profilePic || "default-avatar.png";
+        }
+      }).catch((error) => {
+        console.error("Error loading profile:", error);
+      });
     }
 
     onAuthStateChanged(auth, (user) => {
