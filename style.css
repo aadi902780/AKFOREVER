@@ -1,1 +1,62 @@
+// Import Firebase modules
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
 
+// Your Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyAoRY0MO-ZylhxdnGDVoTqsMZ1MOTyZTB0",
+  authDomain: "akforever-2934a.firebaseapp.com",
+  projectId: "akforever-2934a",
+  storageBucket: "akforever-2934a.firebasestorage.app",
+  messagingSenderId: "1062680034128",
+  appId: "1:1062680034128:web:44f2fcbef1b5e5334f8a55",
+  measurementId: "G-PZXE3HRTGB"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// DOM Elements
+const loginSection = document.getElementById("login-section");
+const chatSection = document.getElementById("chat-section");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const loginBtn = document.getElementById("login-btn");
+const signupBtn = document.getElementById("signup-btn");
+const logoutBtn = document.getElementById("logout-btn");
+const userInfo = document.getElementById("user-info");
+
+// Login Function
+loginBtn.addEventListener("click", () => {
+  const email = emailInput.value;
+  const password = passwordInput.value;
+
+  signInWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      userInfo.innerText = `Logged in as: ${userCredential.user.email}`;
+      loginSection.style.display = "none";
+      chatSection.style.display = "block";
+    })
+    .catch((error) => alert(error.message));
+});
+
+// Signup Function
+signupBtn.addEventListener("click", () => {
+  const email = emailInput.value;
+  const password = passwordInput.value;
+
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      alert("Signup successful! Please log in.");
+    })
+    .catch((error) => alert(error.message));
+});
+
+// Logout Function
+logoutBtn.addEventListener("click", () => {
+  signOut(auth).then(() => {
+    loginSection.style.display = "block";
+    chatSection.style.display = "none";
+  });
+});
